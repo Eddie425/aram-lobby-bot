@@ -19,9 +19,8 @@ flowchart LR
     service --> repo["LobbyRepository"]
     repo --> redis[("Redis\naram:lobby:{lobbyId}\nTTL 4h")]
     listener --> renderer["LobbyCardRenderer"]
-    renderer -->|embed + buttons| discord
+    renderer -->|embed + link buttons| discord
 
-    discord -->|ButtonInteractionEvent| listener
     discord -->|GuildVoiceUpdateEvent| listener
     cleanup["AramCleanupJob\nfixed rate 5s"] --> service
     cleanup -->|delete empty channel after 10s| discord
@@ -43,10 +42,6 @@ sequenceDiagram
     B->>D: Create voice invite
     B->>R: Save Lobby with 4h TTL
     B->>D: Reply with Lobby Card
-    U->>D: Click Join Lobby / Leave Lobby
-    D->>B: ButtonInteractionEvent
-    B->>R: Update joinedUsers interaction record
-    B->>D: Edit Lobby Card
     D->>B: GuildVoiceUpdateEvent
     B->>R: Update voiceMemberCount/emptySince
     B->>D: Edit Lobby Card
@@ -60,9 +55,9 @@ sequenceDiagram
 | Component | Responsibility |
 | --- | --- |
 | `LolInviteLinkDetector` | Extract the first Riot join link from a Discord message. |
-| `AramDiscordListener` | Thin JDA adapter for messages, buttons, slash commands, and voice updates. |
+| `AramDiscordListener` | Thin JDA adapter for messages, slash commands, and voice updates. |
 | `DiscordVoiceRoomFactory` | Find/create voice category and create per-lobby voice channels. |
-| `LobbyService` | Own lobby state transitions: create, join, leave, full, close, voice presence, cleanup eligibility. |
+| `LobbyService` | Own lobby state transitions: create, full, close, voice presence, cleanup eligibility. |
 | `RedisLobbyRepository` | Persist lobby JSON under `aram:lobby:{lobbyId}` with a 4-hour TTL. |
 | `LobbyCardRenderer` | Render Discord embeds and buttons from current lobby state. |
 | `AramCleanupJob` | Periodically delete empty voice rooms and remove Redis lobby records. |
@@ -90,9 +85,8 @@ sequenceDiagram
 
 ## Reliability Notes
 
-- Join/leave operations are synchronized in-process to avoid local double-click races.
 - Player count, missing count, and full/open status use the actual voice channel member count as the source of truth.
-- The current MVP assumes one bot instance. Multi-instance deployment should move join/leave to Redis Lua or optimistic CAS.
+- The current MVP assumes one bot instance.
 - Cleanup deletes Redis only after a Discord channel delete succeeds. Missing voice channels are treated as stale and closed.
 - If `DISCORD_BOT_TOKEN` is absent, the Spring app starts without connecting JDA. This keeps tests and local bootstrapping simple.
 - Slash commands are registered globally, so Discord propagation can take time.
@@ -103,8 +97,8 @@ Covered by unit tests:
 
 - Riot invite link detection, including messages without links and trailing punctuation.
 - Lobby creation with owner counted as first player.
-- Idempotent join, full lobby cap, disabled full join button rendering.
-- Leave from full lobby reopens the lobby.
+- Voice presence drives full/open status and missing-player counts.
+- Closed lobby cards render disabled LoL and voice link buttons.
 - Close removes lobby from active/open query results.
 - Voice empty timer and cleanup grace-period logic.
 - Redis key namespace and save/find JSON behavior with TTL.

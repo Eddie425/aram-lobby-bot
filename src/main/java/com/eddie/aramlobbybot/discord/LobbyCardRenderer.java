@@ -22,25 +22,22 @@ public class LobbyCardRenderer {
 
     public MessageEmbed renderLobbyCard(Lobby lobby) {
         return new EmbedBuilder()
-                .setTitle("🎮 ARAM Lobby - " + safe(lobby.getOwnerDisplayName()))
+                .setTitle("⚔️ ARAM Lobby | " + safe(lobby.getOwnerDisplayName()))
                 .setColor(colorFor(lobby.getStatus()))
-                .addField("房主", safe(lobby.getOwnerDisplayName()), true)
                 .addField("狀態", statusText(lobby), true)
-                .addField("缺", lobby.missingCount() + " 人", true)
-                .addField("語音房", safe(lobby.getVoiceChannelName()), true)
-                .addField("語音人數", String.valueOf(lobby.getVoiceMemberCount()), true)
-                .addField("建立時間", TIME_FORMATTER.format(lobby.getCreatedAt()), true)
+                .addField("戰力槽", progressText(lobby), true)
+                .addField("缺人", missingText(lobby), true)
+                .addField("語音房", "🎧 `" + safe(lobby.getVoiceChannelName()) + "`", true)
+                .addField("語音人數", "👥 **" + lobby.getVoiceMemberCount() + "**", true)
+                .addField("開團時間", "🕘 `" + TIME_FORMATTER.format(lobby.getCreatedAt()) + "`", true)
                 .build();
     }
 
     public List<ActionRow> renderActions(Lobby lobby) {
         boolean closed = lobby.getStatus() == LobbyStatus.CLOSED;
-        boolean full = lobby.getStatus() == LobbyStatus.FULL;
         return List.of(ActionRow.of(
-                Button.link(lobby.getRiotJoinLink(), "🎮 Join LoL"),
-                Button.link(lobby.getVoiceInviteLink(), "🎤 Join Voice"),
-                Button.primary(LobbyButtonIds.join(lobby.getLobbyId()), "✅ Join Lobby").withDisabled(closed || full),
-                Button.danger(LobbyButtonIds.leave(lobby.getLobbyId()), "❌ Leave Lobby").withDisabled(closed)
+                Button.link(lobby.getRiotJoinLink(), closed ? "🔒 LoL Closed" : "🎮 Join LoL").withDisabled(closed),
+                Button.link(lobby.getVoiceInviteLink(), closed ? "🔒 Voice Closed" : "🎤 Join Voice").withDisabled(closed)
         ));
     }
 
@@ -55,8 +52,8 @@ public class LobbyCardRenderer {
         int index = 1;
         for (Lobby lobby : lobbies) {
             embedBuilder.addField(
-                    "Room " + index++ + " - " + safe(lobby.getVoiceChannelName()),
-                    lobby.playerCount() + " / " + Lobby.MAX_PLAYERS + "，缺 " + lobby.missingCount() + " 人",
+                    "Room " + index++ + " | " + safe(lobby.getOwnerDisplayName()),
+                    progressText(lobby) + "\n🎧 `" + safe(lobby.getVoiceChannelName()) + "`，缺 **" + lobby.missingCount() + "** 人",
                     false
             );
         }
@@ -65,9 +62,9 @@ public class LobbyCardRenderer {
 
     private String statusText(Lobby lobby) {
         return switch (lobby.getStatus()) {
-            case OPEN -> lobby.playerCount() + " / " + Lobby.MAX_PLAYERS;
-            case FULL -> "🎉 Full";
-            case CLOSED -> "Closed";
+            case OPEN -> "🟢 **OPEN**";
+            case FULL -> "🎉 **FULL**";
+            case CLOSED -> "🔴 **CLOSED**";
         };
     }
 
@@ -75,8 +72,23 @@ public class LobbyCardRenderer {
         return switch (status) {
             case OPEN -> new Color(0x2F80ED);
             case FULL -> new Color(0x27AE60);
-            case CLOSED -> new Color(0x828282);
+            case CLOSED -> new Color(0xD72638);
         };
+    }
+
+    private String progressText(Lobby lobby) {
+        return "`" + "■".repeat(lobby.playerCount()) + "□".repeat(lobby.missingCount()) + "` **"
+                + lobby.playerCount() + " / " + Lobby.MAX_PLAYERS + "**";
+    }
+
+    private String missingText(Lobby lobby) {
+        if (lobby.getStatus() == LobbyStatus.CLOSED) {
+            return "🔴 **已關閉**";
+        }
+        if (lobby.missingCount() == 0) {
+            return "✅ **滿團**";
+        }
+        return "⚡ **" + lobby.missingCount() + "** slots";
     }
 
     private String safe(String value) {

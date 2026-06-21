@@ -17,14 +17,28 @@ class LobbyCardRendererTest {
     private final LobbyCardRenderer renderer = new LobbyCardRenderer();
 
     @Test
-    void disablesJoinLobbyButtonWhenLobbyIsFull() {
-        Lobby lobby = lobby(LobbyStatus.FULL, "owner", "u1", "u2", "u3", "u4");
-        lobby.setVoiceMemberCount(5);
+    void rendersOnlyLolAndVoiceLinkButtons() {
+        Lobby lobby = lobby(LobbyStatus.OPEN, "owner", "u1");
 
         List<ActionRow> rows = renderer.renderActions(lobby);
-        Button joinLobbyButton = (Button) rows.get(0).getComponents().get(2);
 
-        assertThat(joinLobbyButton.isDisabled()).isTrue();
+        assertThat(rows.get(0).getComponents()).hasSize(2);
+        assertThat(((Button) rows.get(0).getComponents().get(0)).getLabel()).isEqualTo("🎮 Join LoL");
+        assertThat(((Button) rows.get(0).getComponents().get(1)).getLabel()).isEqualTo("🎤 Join Voice");
+    }
+
+    @Test
+    void disablesLinkButtonsWhenLobbyIsClosed() {
+        Lobby lobby = lobby(LobbyStatus.CLOSED, "owner");
+
+        List<ActionRow> rows = renderer.renderActions(lobby);
+        Button lolButton = (Button) rows.get(0).getComponents().get(0);
+        Button voiceButton = (Button) rows.get(0).getComponents().get(1);
+
+        assertThat(lolButton.isDisabled()).isTrue();
+        assertThat(voiceButton.isDisabled()).isTrue();
+        assertThat(lolButton.getLabel()).isEqualTo("🔒 LoL Closed");
+        assertThat(voiceButton.getLabel()).isEqualTo("🔒 Voice Closed");
     }
 
     @Test
@@ -32,15 +46,19 @@ class LobbyCardRendererTest {
         Lobby lobby = lobby(LobbyStatus.OPEN, "owner", "u1");
         lobby.setVoiceMemberCount(2);
 
-        assertThat(renderer.renderLobbyCard(lobby).getTitle()).isEqualTo("🎮 ARAM Lobby - Eddie");
+        assertThat(renderer.renderLobbyCard(lobby).getTitle()).isEqualTo("⚔️ ARAM Lobby | Eddie");
         assertThat(renderer.renderLobbyCard(lobby).getFields())
                 .anySatisfy(field -> {
                     assertThat(field.getName()).isEqualTo("狀態");
-                    assertThat(field.getValue()).isEqualTo("2 / 5");
+                    assertThat(field.getValue()).isEqualTo("🟢 **OPEN**");
                 })
                 .anySatisfy(field -> {
-                    assertThat(field.getName()).isEqualTo("缺");
-                    assertThat(field.getValue()).isEqualTo("3 人");
+                    assertThat(field.getName()).isEqualTo("戰力槽");
+                    assertThat(field.getValue()).isEqualTo("`■■□□□` **2 / 5**");
+                })
+                .anySatisfy(field -> {
+                    assertThat(field.getName()).isEqualTo("缺人");
+                    assertThat(field.getValue()).isEqualTo("⚡ **3** slots");
                 });
     }
 

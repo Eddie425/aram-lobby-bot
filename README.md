@@ -11,7 +11,7 @@ Discord bot MVP for tracking League of Legends ARAM lobby invite links.
 - Detect `https://gg.riotgames.com/LOL?joinCode=...`
 - Create a Discord voice channel under a configured voice category
 - Create a voice invite
-- Post and update a lobby card with join/leave buttons
+- Post and update a lobby card with LoL and voice join links
 - Show active lobbies via `/aram list`
 - Let a lobby owner close their latest lobby via `/aram close`
 - Delete empty voice channels after the configured grace period

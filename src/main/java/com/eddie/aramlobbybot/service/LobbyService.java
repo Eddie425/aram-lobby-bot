@@ -7,6 +7,7 @@ import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import com.eddie.aramlobbybot.domain.Lobby;
@@ -38,6 +39,9 @@ public class LobbyService {
         lobby.setVoiceChannelName(command.voiceChannelName());
         lobby.setVoiceInviteLink(command.voiceInviteLink());
         lobby.setJoinedUsers(new LinkedHashSet<>(List.of(command.ownerUserId())));
+        lobby.setVoiceUserIds(new LinkedHashSet<>());
+        lobby.setReadyUserIds(new LinkedHashSet<>());
+        lobby.setWaitlistUserIds(new LinkedHashSet<>());
         lobby.setVoiceMemberCount(0);
         lobby.setVoiceEmptySince(now);
         lobby.setStatus(LobbyStatus.OPEN);
@@ -74,18 +78,72 @@ public class LobbyService {
     }
 
     public synchronized Lobby updateVoicePresence(String lobbyId, int voiceMemberCount) {
+        return updateVoicePresence(lobbyId, voiceMemberCount, Set.of());
+    }
+
+    public synchronized Lobby updateVoicePresence(String lobbyId, int voiceMemberCount, Set<String> voiceUserIds) {
         Lobby lobby = requireLobby(lobbyId);
         if (lobby.isClosed()) {
             return lobby;
         }
         lobby.setVoiceMemberCount(Math.max(0, voiceMemberCount));
+        lobby.setVoiceUserIds(voiceUserIds);
+        lobby.getReadyUserIds().retainAll(voiceUserIds);
         if (voiceMemberCount > 0) {
             lobby.setVoiceEmptySince(null);
         } else if (lobby.getVoiceEmptySince() == null) {
             lobby.setVoiceEmptySince(clock.instant());
         }
         refreshStatus(lobby);
+        if (lobby.missingCount() == 0) {
+            lobby.setLastNotifiedMissingCount(null);
+        }
         return lobbyRepository.save(lobby);
+    }
+
+    public synchronized Lobby markReady(String lobbyId, String userId) {
+        Lobby lobby = requireLobby(lobbyId);
+        if (lobby.isClosed() || !lobby.getVoiceUserIds().contains(userId)) {
+            return lobby;
+        }
+        lobby.getReadyUserIds().add(userId);
+        return lobbyRepository.save(lobby);
+    }
+
+    public synchronized Lobby markNotReady(String lobbyId, String userId) {
+        Lobby lobby = requireLobby(lobbyId);
+        if (lobby.isClosed()) {
+            return lobby;
+        }
+        lobby.getReadyUserIds().remove(userId);
+        return lobbyRepository.save(lobby);
+    }
+
+    public synchronized Lobby joinWaitlist(String lobbyId, String userId) {
+        Lobby lobby = requireLobby(lobbyId);
+        if (lobby.isClosed() || lobby.getVoiceUserIds().contains(userId)) {
+            return lobby;
+        }
+        lobby.getWaitlistUserIds().add(userId);
+        return lobbyRepository.save(lobby);
+    }
+
+    public synchronized Lobby leaveWaitlist(String lobbyId, String userId) {
+        Lobby lobby = requireLobby(lobbyId);
+        if (lobby.isClosed()) {
+            return lobby;
+        }
+        lobby.getWaitlistUserIds().remove(userId);
+        return lobbyRepository.save(lobby);
+    }
+
+    public synchronized Lobby markMissingNotified(String lobbyId, int missingCount) {
+        Lobby lobby = requireLobby(lobbyId);
+        if (!lobby.isClosed()) {
+            lobby.setLastNotifiedMissingCount(missingCount);
+            return lobbyRepository.save(lobby);
+        }
+        return lobby;
     }
 
     public synchronized Lobby markClosed(String lobbyId) {

@@ -56,14 +56,47 @@ class LobbyServiceTest {
     void voicePresenceDrivesFullAndOpenStatus() {
         Lobby lobby = createLobby("owner");
 
-        Lobby full = lobbyService.updateVoicePresence(lobby.getLobbyId(), 5);
+        Lobby full = lobbyService.updateVoicePresence(lobby.getLobbyId(), 5, java.util.Set.of("owner", "u1", "u2", "u3", "u4"));
         assertThat(full.getStatus()).isEqualTo(LobbyStatus.FULL);
+        assertThat(full.getVoiceUserIds()).containsExactlyInAnyOrder("owner", "u1", "u2", "u3", "u4");
 
-        Lobby reopened = lobbyService.updateVoicePresence(lobby.getLobbyId(), 4);
+        Lobby reopened = lobbyService.updateVoicePresence(lobby.getLobbyId(), 4, java.util.Set.of("owner", "u1", "u2", "u3"));
 
         assertThat(reopened.getStatus()).isEqualTo(LobbyStatus.OPEN);
         assertThat(reopened.playerCount()).isEqualTo(4);
         assertThat(reopened.missingCount()).isEqualTo(1);
+    }
+
+    @Test
+    void readyRequiresUserToBeInVoiceRoomAndIsTrimmedWhenUserLeavesVoice() {
+        Lobby lobby = createLobby("owner");
+        lobbyService.updateVoicePresence(lobby.getLobbyId(), 5, java.util.Set.of("owner", "u1", "u2", "u3", "u4"));
+
+        Lobby ignored = lobbyService.markReady(lobby.getLobbyId(), "not-in-voice");
+        assertThat(ignored.getReadyUserIds()).doesNotContain("not-in-voice");
+
+        Lobby ready = lobbyService.markReady(lobby.getLobbyId(), "owner");
+        assertThat(ready.getReadyUserIds()).contains("owner");
+
+        Lobby trimmed = lobbyService.updateVoicePresence(lobby.getLobbyId(), 4, java.util.Set.of("u1", "u2", "u3", "u4"));
+
+        assertThat(trimmed.getReadyUserIds()).doesNotContain("owner");
+    }
+
+    @Test
+    void waitlistIgnoresUsersAlreadyInVoiceRoom() {
+        Lobby lobby = createLobby("owner");
+        lobbyService.updateVoicePresence(lobby.getLobbyId(), 5, java.util.Set.of("owner", "u1", "u2", "u3", "u4"));
+
+        Lobby ignored = lobbyService.joinWaitlist(lobby.getLobbyId(), "owner");
+        assertThat(ignored.getWaitlistUserIds()).doesNotContain("owner");
+
+        Lobby waitlisted = lobbyService.joinWaitlist(lobby.getLobbyId(), "u5");
+        assertThat(waitlisted.getWaitlistUserIds()).contains("u5");
+
+        Lobby removed = lobbyService.leaveWaitlist(lobby.getLobbyId(), "u5");
+
+        assertThat(removed.getWaitlistUserIds()).doesNotContain("u5");
     }
 
     @Test

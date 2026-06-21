@@ -42,6 +42,19 @@ class LobbyCardRendererTest {
     }
 
     @Test
+    void rendersReadyAndWaitlistButtonsWhenLobbyIsFull() {
+        Lobby lobby = lobby(LobbyStatus.FULL, "owner", "u1", "u2", "u3", "u4");
+        lobby.setVoiceMemberCount(5);
+
+        List<ActionRow> rows = renderer.renderActions(lobby);
+
+        assertThat(rows).hasSize(2);
+        assertThat(rows.get(1).getComponents()).hasSize(4);
+        assertThat(((Button) rows.get(1).getComponents().get(0)).getLabel()).isEqualTo("✅ Ready");
+        assertThat(((Button) rows.get(1).getComponents().get(2)).getLabel()).isEqualTo("📋 排候補");
+    }
+
+    @Test
     void rendersOpenLobbyCounts() {
         Lobby lobby = lobby(LobbyStatus.OPEN, "owner", "u1");
         lobby.setVoiceMemberCount(2);

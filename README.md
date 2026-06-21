@@ -14,6 +14,8 @@ Discord bot MVP for tracking League of Legends ARAM lobby invite links.
 - Post and update a lobby card with LoL and voice join links
 - Show available lobbies via `/aram list` or `/aram available`
 - Toggle per-channel invite link auto-detection via `/aram disable` and `/aram enable`
+- Let players subscribe to missing-player notifications via `/aram notify-on`
+- Show ready-check and waitlist controls when a lobby reaches 5 voice users
 - Let a lobby owner close their latest lobby via `/aram close`
 - Delete empty voice channels after the configured grace period
 
@@ -75,5 +77,21 @@ Avoid serverless request/response platforms for this MVP because JDA keeps a per
 | `/aram status` | Show auto-detection status and lobby counts for the current channel. |
 | `/aram disable` | Disable LoL invite link auto-detection in the current channel. Requires Manage Channels. |
 | `/aram enable` | Enable LoL invite link auto-detection in the current channel. Requires Manage Channels. |
+| `/aram notify-on` | Subscribe to vacancy notifications when an ARAM lobby drops to missing 1-2 players. |
+| `/aram notify-off` | Unsubscribe from vacancy notifications. |
+| `/aram notify-status` | Check whether you are subscribed to vacancy notifications. |
 | `/aram close` | Close your latest active lobby. |
 | `/aram help` | Show the command list in Discord. |
+
+## Manual Discord test checklist
+
+1. Start the bot with Redis and a valid `DISCORD_BOT_TOKEN`.
+2. Post a `https://gg.riotgames.com/LOL?joinCode=...` link in an enabled text channel.
+3. Confirm the bot creates a voice room and posts a lobby card with Join LoL and Join Voice buttons.
+4. Join/leave the created voice room and confirm the card updates `戰力槽`, `缺人`, and `語音人數`.
+5. Put 5 users in the voice room and confirm the card becomes FULL and shows Ready/Not Ready/waitlist buttons.
+6. Have a voice user click Ready and confirm Ready Check updates.
+7. Have a non-voice user click `排候補`; then drop the voice room from 5 to 4 users and confirm they are mentioned.
+8. Run `/aram notify-on` as another user; drop a lobby to missing 1-2 and confirm they are mentioned once for that missing count.
+9. Run `/aram disable`, post a LoL link, and confirm no lobby is created; run `/aram enable` and retry.
+10. Leave the voice room empty for `ARAM_CLEANUP_EMPTY_GRACE` and confirm the voice channel is deleted and the card becomes CLOSED.

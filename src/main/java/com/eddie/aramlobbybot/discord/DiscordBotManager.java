@@ -70,6 +70,9 @@ public class DiscordBotManager {
                                 new SubcommandData("help", "Show ARAM bot commands"),
                                 new SubcommandData("disable", "Disable invite link auto-detection in this channel"),
                                 new SubcommandData("enable", "Enable invite link auto-detection in this channel"),
+                                new SubcommandData("notify-on", "Subscribe to ARAM vacancy notifications"),
+                                new SubcommandData("notify-off", "Unsubscribe from ARAM vacancy notifications"),
+                                new SubcommandData("notify-status", "Show your ARAM notification subscription status"),
                                 new SubcommandData("close", "Close your latest ARAM lobby")
                         ))
                 .queue(

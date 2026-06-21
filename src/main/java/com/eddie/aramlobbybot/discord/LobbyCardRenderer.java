@@ -30,15 +30,32 @@ public class LobbyCardRenderer {
                 .addField("語音房", "🎧 `" + safe(lobby.getVoiceChannelName()) + "`", true)
                 .addField("語音人數", "👥 **" + lobby.getVoiceMemberCount() + "**", true)
                 .addField("開團時間", "🕘 `" + TIME_FORMATTER.format(lobby.getCreatedAt()) + "`", true)
+                .addField("Ready Check", readyText(lobby), true)
+                .addField("候補", waitlistText(lobby), true)
                 .build();
     }
 
     public List<ActionRow> renderActions(Lobby lobby) {
         boolean closed = lobby.getStatus() == LobbyStatus.CLOSED;
-        return List.of(ActionRow.of(
+        List<Button> primaryActions = List.of(
                 Button.link(lobby.getRiotJoinLink(), closed ? "🔒 LoL Closed" : "🎮 Join LoL").withDisabled(closed),
                 Button.link(lobby.getVoiceInviteLink(), closed ? "🔒 Voice Closed" : "🎤 Join Voice").withDisabled(closed)
-        ));
+        );
+        if (closed) {
+            return List.of(ActionRow.of(primaryActions));
+        }
+        if (lobby.getStatus() == LobbyStatus.FULL) {
+            return List.of(
+                    ActionRow.of(primaryActions),
+                    ActionRow.of(
+                            Button.success(LobbyButtonIds.ready(lobby.getLobbyId()), "✅ Ready"),
+                            Button.secondary(LobbyButtonIds.notReady(lobby.getLobbyId()), "⏳ Not Ready"),
+                            Button.primary(LobbyButtonIds.waitlist(lobby.getLobbyId()), "📋 排候補"),
+                            Button.secondary(LobbyButtonIds.leaveWaitlist(lobby.getLobbyId()), "🚪 離開候補")
+                    )
+            );
+        }
+        return List.of(ActionRow.of(primaryActions));
     }
 
     public MessageEmbed renderLobbyList(List<Lobby> lobbies) {
@@ -80,6 +97,9 @@ public class LobbyCardRenderer {
                         `/aram status` - 看這個頻道是否有開自動偵測
                         `/aram disable` - 關閉這個頻道的 LoL link 自動偵測
                         `/aram enable` - 開啟這個頻道的 LoL link 自動偵測
+                        `/aram notify-on` - 訂閱缺 1-2 的上車通知
+                        `/aram notify-off` - 取消缺人通知
+                        `/aram notify-status` - 查看你的通知訂閱狀態
                         `/aram close` - 房主手動關閉自己的最新 Lobby
                         `/aram help` - 顯示這份指令清單
                         """)
@@ -115,6 +135,23 @@ public class LobbyCardRenderer {
             return "✅ **滿團**";
         }
         return "⚡ **" + lobby.missingCount() + "** slots";
+    }
+
+    private String readyText(Lobby lobby) {
+        if (lobby.getStatus() != LobbyStatus.FULL) {
+            return "等待滿團";
+        }
+        if (lobby.isReadyComplete()) {
+            return "✅ **全員 Ready**";
+        }
+        return "⏳ **" + lobby.readyCount() + " / " + Lobby.MAX_PLAYERS + "**";
+    }
+
+    private String waitlistText(Lobby lobby) {
+        if (lobby.getWaitlistUserIds().isEmpty()) {
+            return "無";
+        }
+        return "📋 **" + lobby.getWaitlistUserIds().size() + "** 人";
     }
 
     private String safe(String value) {

@@ -1,10 +1,14 @@
 package com.eddie.aramlobbybot.discord;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.eddie.aramlobbybot.domain.Lobby;
 import com.eddie.aramlobbybot.repository.DetectionSettingsRepository;
+import com.eddie.aramlobbybot.repository.NotificationSubscriptionRepository;
 import com.eddie.aramlobbybot.service.LobbyService;
 import com.eddie.aramlobbybot.service.LobbyService.CreateLobbyCommand;
 import com.eddie.aramlobbybot.service.LolInviteLinkDetector;
@@ -34,6 +38,7 @@ public class AramDiscordListener extends ListenerAdapter {
     private final DiscordLobbyMessageUpdater messageUpdater;
     private final DiscordVoiceRoomFactory voiceRoomFactory;
     private final DetectionSettingsRepository detectionSettingsRepository;
+    private final NotificationSubscriptionRepository notificationSubscriptionRepository;
 
     public AramDiscordListener(
             LolInviteLinkDetector linkDetector,
@@ -41,7 +46,8 @@ public class AramDiscordListener extends ListenerAdapter {
             LobbyCardRenderer lobbyCardRenderer,
             DiscordLobbyMessageUpdater messageUpdater,
             DiscordVoiceRoomFactory voiceRoomFactory,
-            DetectionSettingsRepository detectionSettingsRepository
+            DetectionSettingsRepository detectionSettingsRepository,
+            NotificationSubscriptionRepository notificationSubscriptionRepository
     ) {
         this.linkDetector = linkDetector;
         this.lobbyService = lobbyService;
@@ -49,6 +55,7 @@ public class AramDiscordListener extends ListenerAdapter {
         this.messageUpdater = messageUpdater;
         this.voiceRoomFactory = voiceRoomFactory;
         this.detectionSettingsRepository = detectionSettingsRepository;
+        this.notificationSubscriptionRepository = notificationSubscriptionRepository;
     }
 
     @Override
@@ -84,6 +91,42 @@ public class AramDiscordListener extends ListenerAdapter {
                 event.editMessageEmbeds(lobbyCardRenderer.renderLobbyCard(lobby))
                         .setComponents(lobbyCardRenderer.renderActions(lobby))
                         .queue();
+            } else if (componentId.startsWith(LobbyButtonIds.READY_PREFIX)) {
+                Lobby lobby = lobbyService.markReady(
+                        LobbyButtonIds.extractLobbyId(componentId, LobbyButtonIds.READY_PREFIX),
+                        event.getUser().getId()
+                );
+                if (!lobby.getVoiceUserIds().contains(event.getUser().getId())) {
+                    event.reply("你要先在這團的語音房裡，才能按 Ready。").setEphemeral(true).queue();
+                    return;
+                }
+                event.editMessageEmbeds(lobbyCardRenderer.renderLobbyCard(lobby))
+                        .setComponents(lobbyCardRenderer.renderActions(lobby))
+                        .queue();
+            } else if (componentId.startsWith(LobbyButtonIds.NOT_READY_PREFIX)) {
+                Lobby lobby = lobbyService.markNotReady(
+                        LobbyButtonIds.extractLobbyId(componentId, LobbyButtonIds.NOT_READY_PREFIX),
+                        event.getUser().getId()
+                );
+                event.editMessageEmbeds(lobbyCardRenderer.renderLobbyCard(lobby))
+                        .setComponents(lobbyCardRenderer.renderActions(lobby))
+                        .queue();
+            } else if (componentId.startsWith(LobbyButtonIds.WAITLIST_PREFIX)) {
+                Lobby lobby = lobbyService.joinWaitlist(
+                        LobbyButtonIds.extractLobbyId(componentId, LobbyButtonIds.WAITLIST_PREFIX),
+                        event.getUser().getId()
+                );
+                event.editMessageEmbeds(lobbyCardRenderer.renderLobbyCard(lobby))
+                        .setComponents(lobbyCardRenderer.renderActions(lobby))
+                        .queue();
+            } else if (componentId.startsWith(LobbyButtonIds.WAITLIST_LEAVE_PREFIX)) {
+                Lobby lobby = lobbyService.leaveWaitlist(
+                        LobbyButtonIds.extractLobbyId(componentId, LobbyButtonIds.WAITLIST_LEAVE_PREFIX),
+                        event.getUser().getId()
+                );
+                event.editMessageEmbeds(lobbyCardRenderer.renderLobbyCard(lobby))
+                        .setComponents(lobbyCardRenderer.renderActions(lobby))
+                        .queue();
             }
         } catch (IllegalArgumentException ex) {
             event.reply("找不到這個 Lobby，可能已經被清理。").setEphemeral(true).queue();
@@ -108,8 +151,13 @@ public class AramDiscordListener extends ListenerAdapter {
                     .filter(lobby -> channel.getId().equals(lobby.getVoiceChannelId()))
                     .findFirst()
                     .ifPresent(lobby -> {
-                        Lobby updated = lobbyService.updateVoicePresence(lobby.getLobbyId(), channel.getMembers().size());
+                        int previousMissingCount = lobby.missingCount();
+                        Set<String> voiceUserIds = channel.getMembers().stream()
+                                .map(member -> member.getUser().getId())
+                                .collect(Collectors.toCollection(LinkedHashSet::new));
+                        Lobby updated = lobbyService.updateVoicePresence(lobby.getLobbyId(), channel.getMembers().size(), voiceUserIds);
                         messageUpdater.updateCard(event.getJDA(), updated);
+                        notifyVacancyIfNeeded(event, updated, previousMissingCount);
                     });
         }
     }
@@ -141,6 +189,23 @@ public class AramDiscordListener extends ListenerAdapter {
         }
         if ("help".equals(event.getSubcommandName())) {
             event.replyEmbeds(lobbyCardRenderer.renderCommandHelp()).setEphemeral(true).queue();
+            return;
+        }
+        if ("notify-on".equals(event.getSubcommandName())) {
+            notificationSubscriptionRepository.subscribe(event.getGuild().getId(), event.getUser().getId());
+            event.reply("已訂閱 ARAM 缺人通知。當有團缺 1-2 人時我會提醒你。").setEphemeral(true).queue();
+            return;
+        }
+        if ("notify-off".equals(event.getSubcommandName())) {
+            notificationSubscriptionRepository.unsubscribe(event.getGuild().getId(), event.getUser().getId());
+            event.reply("已取消 ARAM 缺人通知。").setEphemeral(true).queue();
+            return;
+        }
+        if ("notify-status".equals(event.getSubcommandName())) {
+            boolean subscribed = notificationSubscriptionRepository.isSubscribed(event.getGuild().getId(), event.getUser().getId());
+            event.reply(subscribed ? "你目前有訂閱 ARAM 缺人通知。" : "你目前沒有訂閱 ARAM 缺人通知。")
+                    .setEphemeral(true)
+                    .queue();
         }
     }
 
@@ -226,5 +291,39 @@ public class AramDiscordListener extends ListenerAdapter {
     private boolean hasManageChannels(SlashCommandInteractionEvent event) {
         Member member = event.getMember();
         return member != null && member.hasPermission(Permission.MANAGE_CHANNEL);
+    }
+
+    private void notifyVacancyIfNeeded(GuildVoiceUpdateEvent event, Lobby lobby, int previousMissingCount) {
+        int missingCount = lobby.missingCount();
+        if (lobby.isClosed() || missingCount <= 0 || missingCount > 2) {
+            return;
+        }
+        if (lobby.getLastNotifiedMissingCount() != null && lobby.getLastNotifiedMissingCount() == missingCount) {
+            return;
+        }
+        if (previousMissingCount == missingCount) {
+            return;
+        }
+
+        Set<String> recipients = new LinkedHashSet<>(lobby.getWaitlistUserIds());
+        recipients.addAll(notificationSubscriptionRepository.findSubscribers(event.getGuild().getId()));
+        recipients.removeAll(lobby.getVoiceUserIds());
+        if (recipients.isEmpty()) {
+            lobbyService.markMissingNotified(lobby.getLobbyId(), missingCount);
+            return;
+        }
+
+        GuildMessageChannel channel = event.getGuild().getChannelById(GuildMessageChannel.class, lobby.getTextChannelId());
+        if (channel == null) {
+            return;
+        }
+        String mentions = recipients.stream()
+                .map(userId -> "<@" + userId + ">")
+                .collect(Collectors.joining(" "));
+        channel.sendMessage(mentions + "\n⚡ `" + lobby.getVoiceChannelName() + "` 目前缺 **" + missingCount + "**，可以上車。")
+                .queue(
+                        ignored -> lobbyService.markMissingNotified(lobby.getLobbyId(), missingCount),
+                        ex -> log.warn("Failed to send vacancy notification for lobby {}", lobby.getLobbyId(), ex)
+                );
     }
 }

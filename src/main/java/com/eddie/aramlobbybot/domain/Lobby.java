@@ -21,7 +21,11 @@ public class Lobby {
     private String voiceChannelName;
     private String voiceInviteLink;
     private Set<String> joinedUsers = new LinkedHashSet<>();
+    private Set<String> voiceUserIds = new LinkedHashSet<>();
+    private Set<String> readyUserIds = new LinkedHashSet<>();
+    private Set<String> waitlistUserIds = new LinkedHashSet<>();
     private int voiceMemberCount;
+    private Integer lastNotifiedMissingCount;
     private LobbyStatus status;
     private Instant createdAt;
     private Instant voiceEmptySince;
@@ -115,12 +119,44 @@ public class Lobby {
         this.joinedUsers = joinedUsers == null ? new LinkedHashSet<>() : new LinkedHashSet<>(joinedUsers);
     }
 
+    public Set<String> getVoiceUserIds() {
+        return voiceUserIds;
+    }
+
+    public void setVoiceUserIds(Set<String> voiceUserIds) {
+        this.voiceUserIds = voiceUserIds == null ? new LinkedHashSet<>() : new LinkedHashSet<>(voiceUserIds);
+    }
+
+    public Set<String> getReadyUserIds() {
+        return readyUserIds;
+    }
+
+    public void setReadyUserIds(Set<String> readyUserIds) {
+        this.readyUserIds = readyUserIds == null ? new LinkedHashSet<>() : new LinkedHashSet<>(readyUserIds);
+    }
+
+    public Set<String> getWaitlistUserIds() {
+        return waitlistUserIds;
+    }
+
+    public void setWaitlistUserIds(Set<String> waitlistUserIds) {
+        this.waitlistUserIds = waitlistUserIds == null ? new LinkedHashSet<>() : new LinkedHashSet<>(waitlistUserIds);
+    }
+
     public int getVoiceMemberCount() {
         return voiceMemberCount;
     }
 
     public void setVoiceMemberCount(int voiceMemberCount) {
         this.voiceMemberCount = voiceMemberCount;
+    }
+
+    public Integer getLastNotifiedMissingCount() {
+        return lastNotifiedMissingCount;
+    }
+
+    public void setLastNotifiedMissingCount(Integer lastNotifiedMissingCount) {
+        this.lastNotifiedMissingCount = lastNotifiedMissingCount;
     }
 
     public LobbyStatus getStatus() {
@@ -165,6 +201,15 @@ public class Lobby {
 
     public int missingCount() {
         return Math.max(0, MAX_PLAYERS - playerCount());
+    }
+
+    public int readyCount() {
+        return readyUserIds.size();
+    }
+
+    @JsonIgnore
+    public boolean isReadyComplete() {
+        return playerCount() == MAX_PLAYERS && readyUserIds.containsAll(voiceUserIds);
     }
 
     @JsonIgnore

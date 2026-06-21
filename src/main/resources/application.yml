@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: aram-lobby-bot
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+
+discord:
+  bot-token: ${DISCORD_BOT_TOKEN:}
+  voice-category-name: ${DISCORD_VOICE_CATEGORY_NAME:🎮 Voice Category}
+
+aram:
+  lobby:
+    ttl: ${ARAM_LOBBY_TTL:4h}
+  cleanup:
+    empty-grace: ${ARAM_CLEANUP_EMPTY_GRACE:10m}
+    fixed-rate: ${ARAM_CLEANUP_FIXED_RATE:5m}
+
+logging:
+  level:
+    com.eddie.aramlobbybot: INFO

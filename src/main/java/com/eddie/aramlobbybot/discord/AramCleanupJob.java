@@ -32,7 +32,7 @@ public class AramCleanupJob {
         this.aramProperties = aramProperties;
     }
 
-    @Scheduled(fixedRateString = "#{@aramProperties.cleanup().fixedRate().toMillis()}")
+    @Scheduled(fixedRateString = "${aram.cleanup.fixed-rate}")
     public void cleanupEmptyVoiceRooms() {
         discordBotManager.getJda().ifPresent(this::cleanupEmptyVoiceRooms);
     }

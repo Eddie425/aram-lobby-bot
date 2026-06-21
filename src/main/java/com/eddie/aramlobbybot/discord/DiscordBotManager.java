@@ -65,6 +65,11 @@ public class DiscordBotManager {
                 .addCommands(Commands.slash("aram", "Manage ARAM lobbies")
                         .addSubcommands(
                                 new SubcommandData("list", "Show active ARAM lobbies"),
+                                new SubcommandData("available", "Show lobbies that still have open voice slots"),
+                                new SubcommandData("status", "Show bot status for this channel"),
+                                new SubcommandData("help", "Show ARAM bot commands"),
+                                new SubcommandData("disable", "Disable invite link auto-detection in this channel"),
+                                new SubcommandData("enable", "Enable invite link auto-detection in this channel"),
                                 new SubcommandData("close", "Close your latest ARAM lobby")
                         ))
                 .queue(

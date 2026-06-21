@@ -43,7 +43,7 @@ public class LobbyCardRenderer {
 
     public MessageEmbed renderLobbyList(List<Lobby> lobbies) {
         EmbedBuilder embedBuilder = new EmbedBuilder()
-                .setTitle("🎮 Active Lobbies")
+                .setTitle("🎮 Available ARAM Lobbies")
                 .setColor(new Color(0x2F80ED));
         if (lobbies.isEmpty()) {
             embedBuilder.setDescription("目前沒有缺人的 ARAM Lobby。");
@@ -58,6 +58,32 @@ public class LobbyCardRenderer {
             );
         }
         return embedBuilder.build();
+    }
+
+    public MessageEmbed renderBotStatus(boolean detectionEnabled, List<Lobby> openLobbies, List<Lobby> activeLobbies) {
+        return new EmbedBuilder()
+                .setTitle("⚙️ ARAM Bot Status")
+                .setColor(detectionEnabled ? new Color(0x27AE60) : new Color(0xD72638))
+                .addField("自動偵測", detectionEnabled ? "🟢 **ON**" : "🔴 **OFF**", true)
+                .addField("可加入 Lobby", String.valueOf(openLobbies.size()), true)
+                .addField("Active Lobby", String.valueOf(activeLobbies.size()), true)
+                .build();
+    }
+
+    public MessageEmbed renderCommandHelp() {
+        return new EmbedBuilder()
+                .setTitle("🕹️ ARAM Bot Commands")
+                .setColor(new Color(0x2F80ED))
+                .setDescription("""
+                        `/aram list` - 看目前哪些 ARAM Lobby 還缺人
+                        `/aram available` - 同 list，列出可加入的 Lobby
+                        `/aram status` - 看這個頻道是否有開自動偵測
+                        `/aram disable` - 關閉這個頻道的 LoL link 自動偵測
+                        `/aram enable` - 開啟這個頻道的 LoL link 自動偵測
+                        `/aram close` - 房主手動關閉自己的最新 Lobby
+                        `/aram help` - 顯示這份指令清單
+                        """)
+                .build();
     }
 
     private String statusText(Lobby lobby) {

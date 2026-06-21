@@ -12,7 +12,8 @@ Discord bot MVP for tracking League of Legends ARAM lobby invite links.
 - Create a Discord voice channel under a configured voice category
 - Create a voice invite
 - Post and update a lobby card with LoL and voice join links
-- Show active lobbies via `/aram list`
+- Show available lobbies via `/aram list` or `/aram available`
+- Toggle per-channel invite link auto-detection via `/aram disable` and `/aram enable`
 - Let a lobby owner close their latest lobby via `/aram close`
 - Delete empty voice channels after the configured grace period
 
@@ -64,3 +65,15 @@ Avoid serverless request/response platforms for this MVP because JDA keeps a per
 | `ARAM_LOBBY_TTL` | `4h` | Redis TTL for lobby records. |
 | `ARAM_CLEANUP_EMPTY_GRACE` | `10s` | How long an empty voice room can remain before deletion. |
 | `ARAM_CLEANUP_FIXED_RATE` | `5s` | Cleanup scheduler interval. |
+
+## Slash commands
+
+| Command | Description |
+| --- | --- |
+| `/aram list` | Show ARAM lobbies with open voice slots. |
+| `/aram available` | Alias for `/aram list`. |
+| `/aram status` | Show auto-detection status and lobby counts for the current channel. |
+| `/aram disable` | Disable LoL invite link auto-detection in the current channel. Requires Manage Channels. |
+| `/aram enable` | Enable LoL invite link auto-detection in the current channel. Requires Manage Channels. |
+| `/aram close` | Close your latest active lobby. |
+| `/aram help` | Show the command list in Discord. |

@@ -16,8 +16,10 @@ flowchart LR
     listener --> voiceFactory["DiscordVoiceRoomFactory"]
     voiceFactory -->|create category/channel/invite| discord
     listener --> service["LobbyService"]
+    listener --> settings["DetectionSettingsRepository"]
     service --> repo["LobbyRepository"]
     repo --> redis[("Redis\naram:lobby:{lobbyId}\nTTL 4h")]
+    settings --> redisSettings[("Redis\naram:settings:guild:{guildId}:disabled-channels")]
     listener --> renderer["LobbyCardRenderer"]
     renderer -->|embed + link buttons| discord
 
@@ -59,6 +61,7 @@ sequenceDiagram
 | `DiscordVoiceRoomFactory` | Find/create voice category and create per-lobby voice channels. |
 | `LobbyService` | Own lobby state transitions: create, full, close, voice presence, cleanup eligibility. |
 | `RedisLobbyRepository` | Persist lobby JSON under `aram:lobby:{lobbyId}` with a 4-hour TTL. |
+| `RedisDetectionSettingsRepository` | Persist per-guild disabled text channels for LoL invite auto-detection. |
 | `LobbyCardRenderer` | Render Discord embeds and buttons from current lobby state. |
 | `AramCleanupJob` | Periodically delete empty voice rooms and remove Redis lobby records. |
 
@@ -86,6 +89,7 @@ sequenceDiagram
 ## Reliability Notes
 
 - Player count, missing count, and full/open status use the actual voice channel member count as the source of truth.
+- Invite link auto-detection can be disabled per text channel and is persisted in Redis.
 - The current MVP assumes one bot instance.
 - Cleanup deletes Redis only after a Discord channel delete succeeds. Missing voice channels are treated as stale and closed.
 - If `DISCORD_BOT_TOKEN` is absent, the Spring app starts without connecting JDA. This keeps tests and local bootstrapping simple.

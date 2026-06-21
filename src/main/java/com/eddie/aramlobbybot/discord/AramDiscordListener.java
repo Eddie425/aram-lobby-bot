@@ -4,11 +4,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.eddie.aramlobbybot.domain.Lobby;
+import com.eddie.aramlobbybot.repository.DetectionSettingsRepository;
 import com.eddie.aramlobbybot.service.LobbyService;
 import com.eddie.aramlobbybot.service.LobbyService.CreateLobbyCommand;
 import com.eddie.aramlobbybot.service.LolInviteLinkDetector;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.channel.middleman.AudioChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
@@ -31,24 +33,30 @@ public class AramDiscordListener extends ListenerAdapter {
     private final LobbyCardRenderer lobbyCardRenderer;
     private final DiscordLobbyMessageUpdater messageUpdater;
     private final DiscordVoiceRoomFactory voiceRoomFactory;
+    private final DetectionSettingsRepository detectionSettingsRepository;
 
     public AramDiscordListener(
             LolInviteLinkDetector linkDetector,
             LobbyService lobbyService,
             LobbyCardRenderer lobbyCardRenderer,
             DiscordLobbyMessageUpdater messageUpdater,
-            DiscordVoiceRoomFactory voiceRoomFactory
+            DiscordVoiceRoomFactory voiceRoomFactory,
+            DetectionSettingsRepository detectionSettingsRepository
     ) {
         this.linkDetector = linkDetector;
         this.lobbyService = lobbyService;
         this.lobbyCardRenderer = lobbyCardRenderer;
         this.messageUpdater = messageUpdater;
         this.voiceRoomFactory = voiceRoomFactory;
+        this.detectionSettingsRepository = detectionSettingsRepository;
     }
 
     @Override
     public void onMessageReceived(MessageReceivedEvent event) {
         if (!event.isFromGuild() || event.getAuthor().isBot()) {
+            return;
+        }
+        if (!detectionSettingsRepository.isDetectionEnabled(event.getGuild().getId(), event.getChannel().getId())) {
             return;
         }
 
@@ -111,12 +119,28 @@ public class AramDiscordListener extends ListenerAdapter {
         if (!"aram".equals(event.getName())) {
             return;
         }
-        if ("list".equals(event.getSubcommandName())) {
-            event.replyEmbeds(lobbyCardRenderer.renderLobbyList(lobbyService.findOpenLobbies())).queue();
+        if ("list".equals(event.getSubcommandName()) || "available".equals(event.getSubcommandName())) {
+            event.replyEmbeds(lobbyCardRenderer.renderLobbyList(lobbyService.findOpenLobbies())).setEphemeral(true).queue();
             return;
         }
         if ("close".equals(event.getSubcommandName())) {
             closeLatestOwnedLobby(event);
+            return;
+        }
+        if ("disable".equals(event.getSubcommandName())) {
+            disableDetection(event);
+            return;
+        }
+        if ("enable".equals(event.getSubcommandName())) {
+            enableDetection(event);
+            return;
+        }
+        if ("status".equals(event.getSubcommandName())) {
+            replyStatus(event);
+            return;
+        }
+        if ("help".equals(event.getSubcommandName())) {
+            event.replyEmbeds(lobbyCardRenderer.renderCommandHelp()).setEphemeral(true).queue();
         }
     }
 
@@ -166,5 +190,41 @@ public class AramDiscordListener extends ListenerAdapter {
                     messageUpdater.updateCard(event.getJDA(), closed);
                     event.reply("已關閉你的最新 ARAM Lobby。").setEphemeral(true).queue();
                 }, () -> event.reply("你目前沒有可關閉的 ARAM Lobby。").setEphemeral(true).queue());
+    }
+
+    private void disableDetection(SlashCommandInteractionEvent event) {
+        if (!hasManageChannels(event)) {
+            event.reply("你需要 Manage Channels 權限才能關閉這個頻道的自動偵測。").setEphemeral(true).queue();
+            return;
+        }
+        detectionSettingsRepository.disableDetection(event.getGuild().getId(), event.getChannel().getId());
+        event.reply("已關閉這個頻道的 LoL invite link 自動偵測。需要時可用 `/aram enable` 打開。")
+                .setEphemeral(true)
+                .queue();
+    }
+
+    private void enableDetection(SlashCommandInteractionEvent event) {
+        if (!hasManageChannels(event)) {
+            event.reply("你需要 Manage Channels 權限才能開啟這個頻道的自動偵測。").setEphemeral(true).queue();
+            return;
+        }
+        detectionSettingsRepository.enableDetection(event.getGuild().getId(), event.getChannel().getId());
+        event.reply("已開啟這個頻道的 LoL invite link 自動偵測。").setEphemeral(true).queue();
+    }
+
+    private void replyStatus(SlashCommandInteractionEvent event) {
+        boolean enabled = detectionSettingsRepository.isDetectionEnabled(event.getGuild().getId(), event.getChannel().getId());
+        event.replyEmbeds(lobbyCardRenderer.renderBotStatus(
+                        enabled,
+                        lobbyService.findOpenLobbies(),
+                        lobbyService.findActiveLobbies()
+                ))
+                .setEphemeral(true)
+                .queue();
+    }
+
+    private boolean hasManageChannels(SlashCommandInteractionEvent event) {
+        Member member = event.getMember();
+        return member != null && member.hasPermission(Permission.MANAGE_CHANNEL);
     }
 }

@@ -7,11 +7,12 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.scheduling.annotation.SchedulingConfigurer;
+import org.springframework.scheduling.config.ScheduledTaskRegistrar;
 import org.springframework.stereotype.Component;
 
 @Component
-public class AramCleanupJob {
+public class AramCleanupJob implements SchedulingConfigurer {
 
     private static final Logger log = LoggerFactory.getLogger(AramCleanupJob.class);
 
@@ -32,7 +33,11 @@ public class AramCleanupJob {
         this.aramProperties = aramProperties;
     }
 
-    @Scheduled(fixedRateString = "${aram.cleanup.fixed-rate}")
+    @Override
+    public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
+        taskRegistrar.addFixedRateTask(this::cleanupEmptyVoiceRooms, aramProperties.cleanup().fixedRate());
+    }
+
     public void cleanupEmptyVoiceRooms() {
         discordBotManager.getJda().ifPresent(this::cleanupEmptyVoiceRooms);
     }

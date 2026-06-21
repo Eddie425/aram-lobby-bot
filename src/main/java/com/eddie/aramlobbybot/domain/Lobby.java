@@ -159,8 +159,12 @@ public class Lobby {
         return joinedUsers.size();
     }
 
+    public int playerCount() {
+        return Math.min(MAX_PLAYERS, Math.max(0, voiceMemberCount));
+    }
+
     public int missingCount() {
-        return Math.max(0, MAX_PLAYERS - joinedCount());
+        return Math.max(0, MAX_PLAYERS - playerCount());
     }
 
     @JsonIgnore

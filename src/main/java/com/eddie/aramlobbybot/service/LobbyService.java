@@ -84,6 +84,7 @@ public class LobbyService {
         } else if (lobby.getVoiceEmptySince() == null) {
             lobby.setVoiceEmptySince(clock.instant());
         }
+        refreshStatus(lobby);
         return lobbyRepository.save(lobby);
     }
 
@@ -137,7 +138,7 @@ public class LobbyService {
     }
 
     private void refreshStatus(Lobby lobby) {
-        if (lobby.joinedCount() >= Lobby.MAX_PLAYERS) {
+        if (lobby.playerCount() >= Lobby.MAX_PLAYERS) {
             lobby.setStatus(LobbyStatus.FULL);
         } else {
             lobby.setStatus(LobbyStatus.OPEN);

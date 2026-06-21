@@ -23,8 +23,8 @@ flowchart LR
 
     discord -->|ButtonInteractionEvent| listener
     discord -->|GuildVoiceUpdateEvent| listener
-    cleanup["AramCleanupJob\nfixed rate 5m"] --> service
-    cleanup -->|delete empty channel after 10m| discord
+    cleanup["AramCleanupJob\nfixed rate 5s"] --> service
+    cleanup -->|delete empty channel after 10s| discord
 ```
 
 ## Runtime Flow
@@ -45,13 +45,13 @@ sequenceDiagram
     B->>D: Reply with Lobby Card
     U->>D: Click Join Lobby / Leave Lobby
     D->>B: ButtonInteractionEvent
-    B->>R: Update joinedUsers/status
+    B->>R: Update joinedUsers interaction record
     B->>D: Edit Lobby Card
     D->>B: GuildVoiceUpdateEvent
     B->>R: Update voiceMemberCount/emptySince
     B->>D: Edit Lobby Card
-    B->>R: Cleanup scan every 5m
-    B->>D: Delete voice channel if empty for 10m
+    B->>R: Cleanup scan every 5s
+    B->>D: Delete voice channel if empty for 10s
     B->>R: Delete Lobby
 ```
 
@@ -91,6 +91,7 @@ sequenceDiagram
 ## Reliability Notes
 
 - Join/leave operations are synchronized in-process to avoid local double-click races.
+- Player count, missing count, and full/open status use the actual voice channel member count as the source of truth.
 - The current MVP assumes one bot instance. Multi-instance deployment should move join/leave to Redis Lua or optimistic CAS.
 - Cleanup deletes Redis only after a Discord channel delete succeeds. Missing voice channels are treated as stale and closed.
 - If `DISCORD_BOT_TOKEN` is absent, the Spring app starts without connecting JDA. This keeps tests and local bootstrapping simple.

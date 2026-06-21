@@ -62,5 +62,5 @@ Avoid serverless request/response platforms for this MVP because JDA keeps a per
 | `DISCORD_BOT_TOKEN` | empty | Discord bot token. If empty, the app starts without connecting JDA. |
 | `DISCORD_VOICE_CATEGORY_NAME` | `🎮 Voice Category` | Category used for auto-created voice rooms. Created if missing. |
 | `ARAM_LOBBY_TTL` | `4h` | Redis TTL for lobby records. |
-| `ARAM_CLEANUP_EMPTY_GRACE` | `10m` | How long an empty voice room can remain before deletion. |
-| `ARAM_CLEANUP_FIXED_RATE` | `5m` | Cleanup scheduler interval. |
+| `ARAM_CLEANUP_EMPTY_GRACE` | `10s` | How long an empty voice room can remain before deletion. |
+| `ARAM_CLEANUP_FIXED_RATE` | `5s` | Cleanup scheduler interval. |

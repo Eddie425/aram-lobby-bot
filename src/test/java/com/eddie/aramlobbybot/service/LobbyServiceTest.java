@@ -25,17 +25,18 @@ class LobbyServiceTest {
     }
 
     @Test
-    void createsLobbyWithOwnerAsFirstJoinedUser() {
+    void createsLobbyWithOwnerAsFirstJoinedUserButUsesVoiceCountForMissingPlayers() {
         Lobby lobby = createLobby("owner");
 
         assertThat(lobby.getStatus()).isEqualTo(LobbyStatus.OPEN);
         assertThat(lobby.joinedCount()).isEqualTo(1);
-        assertThat(lobby.missingCount()).isEqualTo(4);
+        assertThat(lobby.playerCount()).isZero();
+        assertThat(lobby.missingCount()).isEqualTo(5);
         assertThat(lobby.getVoiceEmptySince()).isEqualTo(clock.instant());
     }
 
     @Test
-    void joinLobbyIsIdempotentAndMarksFullAtFivePlayers() {
+    void joinLobbyIsIdempotentButDoesNotDriveFullStatus() {
         Lobby lobby = createLobby("owner");
 
         lobbyService.joinLobby(lobby.getLobbyId(), "u1");
@@ -45,23 +46,23 @@ class LobbyServiceTest {
         Lobby fullLobby = lobbyService.joinLobby(lobby.getLobbyId(), "u4");
         Lobby unchanged = lobbyService.joinLobby(lobby.getLobbyId(), "u5");
 
-        assertThat(fullLobby.getStatus()).isEqualTo(LobbyStatus.FULL);
+        assertThat(fullLobby.getStatus()).isEqualTo(LobbyStatus.OPEN);
         assertThat(unchanged.joinedCount()).isEqualTo(5);
+        assertThat(unchanged.playerCount()).isZero();
         assertThat(unchanged.getJoinedUsers()).doesNotContain("u5");
     }
 
     @Test
-    void leaveLobbyReopensFullLobby() {
+    void voicePresenceDrivesFullAndOpenStatus() {
         Lobby lobby = createLobby("owner");
-        lobbyService.joinLobby(lobby.getLobbyId(), "u1");
-        lobbyService.joinLobby(lobby.getLobbyId(), "u2");
-        lobbyService.joinLobby(lobby.getLobbyId(), "u3");
-        lobbyService.joinLobby(lobby.getLobbyId(), "u4");
 
-        Lobby reopened = lobbyService.leaveLobby(lobby.getLobbyId(), "u4");
+        Lobby full = lobbyService.updateVoicePresence(lobby.getLobbyId(), 5);
+        assertThat(full.getStatus()).isEqualTo(LobbyStatus.FULL);
+
+        Lobby reopened = lobbyService.updateVoicePresence(lobby.getLobbyId(), 4);
 
         assertThat(reopened.getStatus()).isEqualTo(LobbyStatus.OPEN);
-        assertThat(reopened.joinedCount()).isEqualTo(4);
+        assertThat(reopened.playerCount()).isEqualTo(4);
         assertThat(reopened.missingCount()).isEqualTo(1);
     }
 

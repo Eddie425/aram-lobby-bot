@@ -22,7 +22,7 @@ public class LobbyCardRenderer {
 
     public MessageEmbed renderLobbyCard(Lobby lobby) {
         return new EmbedBuilder()
-                .setTitle("🎮 ARAM Lobby")
+                .setTitle("🎮 ARAM Lobby - " + safe(lobby.getOwnerDisplayName()))
                 .setColor(colorFor(lobby.getStatus()))
                 .addField("房主", safe(lobby.getOwnerDisplayName()), true)
                 .addField("狀態", statusText(lobby), true)
@@ -56,7 +56,7 @@ public class LobbyCardRenderer {
         for (Lobby lobby : lobbies) {
             embedBuilder.addField(
                     "Room " + index++ + " - " + safe(lobby.getVoiceChannelName()),
-                    lobby.joinedCount() + " / " + Lobby.MAX_PLAYERS + "，缺 " + lobby.missingCount() + " 人",
+                    lobby.playerCount() + " / " + Lobby.MAX_PLAYERS + "，缺 " + lobby.missingCount() + " 人",
                     false
             );
         }
@@ -65,7 +65,7 @@ public class LobbyCardRenderer {
 
     private String statusText(Lobby lobby) {
         return switch (lobby.getStatus()) {
-            case OPEN -> lobby.joinedCount() + " / " + Lobby.MAX_PLAYERS;
+            case OPEN -> lobby.playerCount() + " / " + Lobby.MAX_PLAYERS;
             case FULL -> "🎉 Full";
             case CLOSED -> "Closed";
         };

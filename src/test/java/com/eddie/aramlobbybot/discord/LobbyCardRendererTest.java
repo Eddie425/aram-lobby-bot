@@ -19,6 +19,7 @@ class LobbyCardRendererTest {
     @Test
     void disablesJoinLobbyButtonWhenLobbyIsFull() {
         Lobby lobby = lobby(LobbyStatus.FULL, "owner", "u1", "u2", "u3", "u4");
+        lobby.setVoiceMemberCount(5);
 
         List<ActionRow> rows = renderer.renderActions(lobby);
         Button joinLobbyButton = (Button) rows.get(0).getComponents().get(2);
@@ -29,7 +30,9 @@ class LobbyCardRendererTest {
     @Test
     void rendersOpenLobbyCounts() {
         Lobby lobby = lobby(LobbyStatus.OPEN, "owner", "u1");
+        lobby.setVoiceMemberCount(2);
 
+        assertThat(renderer.renderLobbyCard(lobby).getTitle()).isEqualTo("🎮 ARAM Lobby - Eddie");
         assertThat(renderer.renderLobbyCard(lobby).getFields())
                 .anySatisfy(field -> {
                     assertThat(field.getName()).isEqualTo("狀態");

@@ -145,12 +145,22 @@ The app requests Message Content, Guild Messages, and Guild Voice States gateway
 
 This bot is a long-running worker process. It needs outbound internet access to Discord, Redis, and a safe place to store `DISCORD_BOT_TOKEN`.
 
-Recommended MVP deployment targets:
+Recommended MVP host: **Railway**.
+
+- Deploys directly from GitHub with the included Dockerfile.
+- Redis can run as another service in the same Railway project.
+- Service variables can store `DISCORD_BOT_TOKEN` and Redis connection settings.
+- The app does not need a public HTTP route because it connects outbound to Discord.
+
+See [Railway deployment guide](docs/deploy-railway.md).
+
+Other viable targets:
 
 | Target | Fit |
 | --- | --- |
-| Small VPS with Docker | Best control over Redis, logs, and process uptime. |
-| Railway / Fly.io / Render worker | Fast setup, but verify always-on worker and Redis support. |
+| Small VPS with Docker | Best control over Redis, logs, and process uptime, but more ops work. |
+| Fly.io | Cheap small machines, but Redis usually needs extra setup or an external provider. |
+| Render worker | Straightforward, but likely costs more once worker + Redis-compatible Key Value are included. |
 | Home lab / NAS with Docker | Good enough for private server testing if uptime is acceptable. |
 
 Avoid serverless request/response platforms because JDA maintains a persistent Discord gateway connection.
@@ -171,6 +181,7 @@ Avoid serverless request/response platforms because JDA maintains a persistent D
 ## Documentation
 
 - [Technical design](docs/technical-design.md)
+- [Railway deployment guide](docs/deploy-railway.md)
 - [Manual test checklist](#manual-discord-test-checklist)
 
 ## Scope Boundaries

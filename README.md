@@ -1,39 +1,97 @@
 # ARAM Lobby Bot
 
-Discord bot MVP for tracking League of Legends ARAM lobby invite links.
+<p align="center">
+  <img src="assets/app-icon.png" alt="ARAM Lobby Bot icon" width="132" />
+</p>
 
-## Documentation
+<p align="center">
+  <strong>A Discord bot that turns League ARAM invite links into trackable voice lobbies.</strong>
+</p>
 
-- [Technical design](docs/technical-design.md)
+<p align="center">
+  <img alt="Java 17" src="https://img.shields.io/badge/Java-17-orange" />
+  <img alt="Spring Boot 3" src="https://img.shields.io/badge/Spring%20Boot-3.3-brightgreen" />
+  <img alt="JDA 5" src="https://img.shields.io/badge/JDA-5-5865F2" />
+  <img alt="Redis" src="https://img.shields.io/badge/Redis-7-red" />
+  <img alt="Docker" src="https://img.shields.io/badge/Docker-ready-2496ED" />
+</p>
 
-## Scope
+> Unofficial community tool. This project does not call Riot APIs and does not create League rooms.
 
-- Detect `https://gg.riotgames.com/LOL?joinCode=...`
-- Create a Discord voice channel under a configured voice category
-- Create a voice invite
-- Post and update a lobby card with LoL and voice join links
-- Show available lobbies via `/aram list` or `/aram available`
-- Toggle per-channel invite link auto-detection via `/aram disable` and `/aram enable`
-- Let players subscribe to missing-player notifications via `/aram notify-on`
-- Show ready-check and waitlist controls when a lobby reaches 5 voice users
-- Let a lobby owner close their latest lobby via `/aram close`
-- Delete empty voice channels after the configured grace period
+## Why
 
-No Riot API, MySQL, ranking, binding, or statistics features are included.
+ARAM groups often devolve into noisy Discord messages:
 
-## Required Discord permissions
+```text
+++
+缺2
+滿了
+還有缺嗎
+```
 
-- Manage Channels
-- Create Instant Invite
-- View Channels
-- Send Messages
-- Embed Links
-- Use Slash Commands
-- Read Message History
+The Riot join link already gets players into the game. The missing piece is lobby coordination:
 
-The bot also requires the Message Content, Guild Messages, and Guild Voice States intents.
+- Who opened the lobby?
+- Which lobby still needs players?
+- Where is the voice room?
+- Is the lobby full or closed?
 
-## Run locally
+ARAM Lobby Bot solves that one problem: **show the current joinable ARAM lobbies without chat spam.**
+
+## Demo
+
+![ARAM Lobby Bot demo](docs/demo-lobby-card.svg)
+
+## Features
+
+| Area | What it does |
+| --- | --- |
+| Invite detection | Watches Discord messages for `https://gg.riotgames.com/LOL?joinCode=...`. |
+| Voice room automation | Creates a per-lobby voice channel under the configured Discord category. |
+| Lobby card | Posts an embed with owner, status, missing slots, voice count, and join buttons. |
+| Voice-based capacity | Uses actual voice channel members as the source of truth for `0 / 5` through `5 / 5`. |
+| Ready check | Shows Ready/Not Ready controls when the voice room reaches 5 players. |
+| Waitlist | Lets non-voice users queue for a full lobby. |
+| Vacancy notifications | Mentions waitlisted/subscribed users when a lobby drops to missing 1-2 players. |
+| Channel controls | Lets moderators disable or enable auto-detection per text channel. |
+| Cleanup | Deletes empty voice rooms after the configured grace period and closes the card. |
+
+## Core Flow
+
+```mermaid
+sequenceDiagram
+    participant Player
+    participant Discord
+    participant Bot
+    participant Redis
+
+    Player->>Discord: Post LoL invite link
+    Discord->>Bot: MessageReceivedEvent
+    Bot->>Discord: Create ARAM voice room
+    Bot->>Redis: Save lobby with TTL
+    Bot->>Discord: Reply with lobby card
+    Player->>Discord: Join voice room
+    Discord->>Bot: GuildVoiceUpdateEvent
+    Bot->>Redis: Update voice member state
+    Bot->>Discord: Edit lobby card
+    Bot->>Discord: Notify waitlist/subscribers when slots open
+    Bot->>Discord: Delete empty voice room after grace period
+```
+
+## Tech Stack
+
+- Java 17
+- Spring Boot 3
+- JDA 5
+- Redis
+- Docker / Docker Compose
+
+## Quickstart
+
+1. Create a Discord application and bot in the Discord Developer Portal.
+2. Enable Message Content Intent in the Discord Developer Portal.
+3. Invite the bot to your server with the required permissions below.
+4. Start the bot:
 
 ```bash
 export DISCORD_BOT_TOKEN=your-token
@@ -46,17 +104,17 @@ For local JVM execution, start Redis first and run:
 mvn spring-boot:run
 ```
 
-## Deployment options
+## Required Discord Permissions
 
-This bot is a long-running worker process. It needs outbound internet access to Discord, a Redis instance, and a safe place to store `DISCORD_BOT_TOKEN`.
+- Manage Channels
+- Create Instant Invite
+- View Channels
+- Send Messages
+- Embed Links
+- Use Slash Commands
+- Read Message History
 
-Recommended options for MVP testing:
-
-- Docker on a small VPS: simplest operational model, full control over Redis and logs.
-- Railway/Fly.io/Render worker: faster setup, but confirm the plan supports always-on background workers and Redis.
-- Home lab/NAS with Docker: fine for a private Discord server test if uptime is acceptable.
-
-Avoid serverless request/response platforms for this MVP because JDA keeps a persistent Discord gateway connection.
+The app requests Message Content, Guild Messages, and Guild Voice States gateway intents at runtime.
 
 ## Configuration
 
@@ -68,7 +126,7 @@ Avoid serverless request/response platforms for this MVP because JDA keeps a per
 | `ARAM_CLEANUP_EMPTY_GRACE` | `10s` | How long an empty voice room can remain before deletion. |
 | `ARAM_CLEANUP_FIXED_RATE` | `5s` | Cleanup scheduler interval. |
 
-## Slash commands
+## Slash Commands
 
 | Command | Description |
 | --- | --- |
@@ -83,15 +141,52 @@ Avoid serverless request/response platforms for this MVP because JDA keeps a per
 | `/aram close` | Close your latest active lobby. |
 | `/aram help` | Show the command list in Discord. |
 
-## Manual Discord test checklist
+## Deployment
+
+This bot is a long-running worker process. It needs outbound internet access to Discord, Redis, and a safe place to store `DISCORD_BOT_TOKEN`.
+
+Recommended MVP deployment targets:
+
+| Target | Fit |
+| --- | --- |
+| Small VPS with Docker | Best control over Redis, logs, and process uptime. |
+| Railway / Fly.io / Render worker | Fast setup, but verify always-on worker and Redis support. |
+| Home lab / NAS with Docker | Good enough for private server testing if uptime is acceptable. |
+
+Avoid serverless request/response platforms because JDA maintains a persistent Discord gateway connection.
+
+## Manual Discord Test Checklist
 
 1. Start the bot with Redis and a valid `DISCORD_BOT_TOKEN`.
 2. Post a `https://gg.riotgames.com/LOL?joinCode=...` link in an enabled text channel.
 3. Confirm the bot creates a voice room and posts a lobby card with Join LoL and Join Voice buttons.
-4. Join/leave the created voice room and confirm the card updates `戰力槽`, `缺人`, and `語音人數`.
-5. Put 5 users in the voice room and confirm the card becomes FULL and shows Ready/Not Ready/waitlist buttons.
-6. Have a voice user click Ready and confirm Ready Check updates.
+4. Join and leave the created voice room; confirm the card updates `戰力槽`, `缺人`, and `語音人數`.
+5. Put 5 users in the voice room; confirm the card becomes FULL and shows Ready/Not Ready/waitlist buttons.
+6. Have a voice user click Ready; confirm Ready Check updates.
 7. Have a non-voice user click `排候補`; then drop the voice room from 5 to 4 users and confirm they are mentioned.
 8. Run `/aram notify-on` as another user; drop a lobby to missing 1-2 and confirm they are mentioned once for that missing count.
 9. Run `/aram disable`, post a LoL link, and confirm no lobby is created; run `/aram enable` and retry.
-10. Leave the voice room empty for `ARAM_CLEANUP_EMPTY_GRACE` and confirm the voice channel is deleted and the card becomes CLOSED.
+10. Leave the voice room empty for `ARAM_CLEANUP_EMPTY_GRACE`; confirm the voice channel is deleted and the card becomes CLOSED.
+
+## Documentation
+
+- [Technical design](docs/technical-design.md)
+- [Manual test checklist](#manual-discord-test-checklist)
+
+## Scope Boundaries
+
+Included:
+
+- LoL invite link detection
+- Discord voice room lifecycle
+- Lobby card state
+- Missing-player visibility
+- Voice room cleanup
+
+Not included:
+
+- Riot API integration
+- League room creation
+- MySQL persistence
+- Player ranking or statistics
+- Riot account binding

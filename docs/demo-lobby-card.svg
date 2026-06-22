@@ -1,0 +1,77 @@
+<svg width="1120" height="620" viewBox="0 0 1120 620" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">ARAM Lobby Bot demo card</title>
+  <desc id="desc">A Discord-style demo showing an ARAM lobby card with join buttons, ready check, waitlist, and vacancy notification.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1120" y2="620" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#11131A"/>
+      <stop offset="0.48" stop-color="#171A24"/>
+      <stop offset="1" stop-color="#0B0D13"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="86" y1="92" x2="1040" y2="520" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#00A3FF"/>
+      <stop offset="0.52" stop-color="#9B5CFF"/>
+      <stop offset="1" stop-color="#FF2FA0"/>
+    </linearGradient>
+    <filter id="shadow" x="16" y="22" width="1088" height="574" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="18"/>
+      <feGaussianBlur stdDeviation="22"/>
+      <feComposite in2="hardAlpha" operator="out"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.02 0 0 0 0 0.03 0 0 0 0 0.05 0 0 0 0.55 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1_1"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1_1" result="shape"/>
+    </filter>
+  </defs>
+
+  <rect width="1120" height="620" rx="24" fill="url(#bg)"/>
+  <path d="M70 92H1050" stroke="url(#accent)" stroke-width="2" stroke-linecap="round" opacity="0.85"/>
+  <path d="M70 520H1050" stroke="url(#accent)" stroke-width="2" stroke-linecap="round" opacity="0.45"/>
+
+  <g filter="url(#shadow)">
+    <rect x="70" y="92" width="980" height="428" rx="18" fill="#20232E"/>
+    <rect x="70" y="92" width="980" height="428" rx="18" stroke="#303647"/>
+  </g>
+
+  <rect x="98" y="120" width="924" height="56" rx="12" fill="#151821"/>
+  <circle cx="126" cy="148" r="15" fill="#2B3140"/>
+  <path d="M122 143L132 148L122 153V143Z" fill="#00A3FF"/>
+  <text x="154" y="154" fill="#EDEFF6" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="18" font-weight="700">Eddie Chang posted a League invite link</text>
+  <text x="794" y="154" fill="#65B8FF" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="16">gg.riotgames.com/LOL?joinCode=...</text>
+
+  <rect x="118" y="210" width="540" height="238" rx="14" fill="#171A22"/>
+  <rect x="118" y="210" width="7" height="238" rx="3.5" fill="#2F80ED"/>
+  <text x="146" y="247" fill="#F4F6FB" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="24" font-weight="800">ARAM Lobby | Eddie Chang</text>
+
+  <text x="146" y="291" fill="#9AA4B5" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="14" font-weight="700">STATUS</text>
+  <text x="146" y="319" fill="#36D399" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="23" font-weight="800">OPEN</text>
+
+  <text x="286" y="291" fill="#9AA4B5" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="14" font-weight="700">SLOTS</text>
+  <text x="286" y="319" fill="#F4F6FB" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="23" font-weight="800">4 / 5</text>
+
+  <text x="406" y="291" fill="#9AA4B5" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="14" font-weight="700">MISSING</text>
+  <text x="406" y="319" fill="#FFCA3A" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="23" font-weight="800">1 player</text>
+
+  <rect x="146" y="354" width="28" height="28" rx="7" fill="#2F80ED"/>
+  <text x="188" y="375" fill="#F4F6FB" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="18" font-weight="700">ARAM-Eddie-Chang</text>
+  <text x="188" y="401" fill="#9AA4B5" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="15">Voice users: 4 • Ready: waiting for full lobby • Waitlist: 2</text>
+
+  <rect x="704" y="210" width="286" height="238" rx="14" fill="#151821"/>
+  <text x="734" y="249" fill="#F4F6FB" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="21" font-weight="800">Active Lobbies</text>
+  <rect x="734" y="276" width="226" height="54" rx="10" fill="#202838"/>
+  <text x="752" y="299" fill="#F4F6FB" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="15" font-weight="700">Room 1 | Eddie</text>
+  <text x="752" y="319" fill="#9AA4B5" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13">4 / 5 • missing 1</text>
+  <rect x="734" y="344" width="226" height="54" rx="10" fill="#202838"/>
+  <text x="752" y="367" fill="#F4F6FB" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="15" font-weight="700">Room 2 | Kai</text>
+  <text x="752" y="387" fill="#9AA4B5" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="13">3 / 5 • missing 2</text>
+
+  <rect x="146" y="468" width="148" height="44" rx="10" fill="#2F80ED"/>
+  <text x="184" y="496" fill="white" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="16" font-weight="800">Join LoL</text>
+  <rect x="306" y="468" width="162" height="44" rx="10" fill="#2A2F3B"/>
+  <text x="343" y="496" fill="#F4F6FB" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="16" font-weight="800">Join Voice</text>
+  <rect x="480" y="468" width="122" height="44" rx="10" fill="#23A55A"/>
+  <text x="515" y="496" fill="white" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="16" font-weight="800">Ready</text>
+
+  <rect x="704" y="468" width="286" height="44" rx="10" fill="#301B25"/>
+  <text x="728" y="496" fill="#FF5C8A" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="15" font-weight="800">@waitlist missing 1, hop in</text>
+</svg>

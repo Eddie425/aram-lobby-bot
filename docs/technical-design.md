@@ -10,7 +10,7 @@ The bot does not create League rooms, call Riot APIs, persist to MySQL, rank pla
 
 ```mermaid
 flowchart LR
-    user["Discord user"] -->|posts LoL invite link| discord["Discord guild"]
+    user["Discord user"] -->|posts /al + LoL invite link| discord["Discord guild"]
     discord -->|MessageReceivedEvent| listener["AramDiscordListener"]
     listener --> detector["LolInviteLinkDetector"]
     listener --> voiceFactory["DiscordVoiceRoomFactory"]
@@ -20,7 +20,7 @@ flowchart LR
     listener --> notifyRepo["NotificationSubscriptionRepository"]
     service --> repo["LobbyRepository"]
     repo --> redis[("Redis\naram:lobby:{lobbyId}\nTTL 4h")]
-    settings --> redisSettings[("Redis\naram:settings:guild:{guildId}:disabled-channels")]
+    settings --> redisSettings[("Redis\naram:settings:guild:{guildId}:disabled-channels\naram:settings:guild:{guildId}:channel-modes")]
     notifyRepo --> redisNotify[("Redis\naram:notify:guild:{guildId}:users")]
     listener --> renderer["LobbyCardRenderer"]
     renderer -->|embed + link buttons| discord
@@ -40,7 +40,7 @@ sequenceDiagram
     participant B as Bot
     participant R as Redis
 
-    U->>D: Post https://gg.riotgames.com/LOL?joinCode=...
+    U->>D: Post /al https://gg.riotgames.com/LOL?joinCode=...
     D->>B: MessageReceivedEvent
     B->>D: Create or reuse voice category
     B->>D: Create ARAM voice channel
@@ -65,7 +65,7 @@ sequenceDiagram
 | `DiscordVoiceRoomFactory` | Find/create voice category and create per-lobby voice channels. |
 | `LobbyService` | Own lobby state transitions: create, full, close, voice presence, cleanup eligibility. |
 | `RedisLobbyRepository` | Persist lobby JSON under `aram:lobby:{lobbyId}` with a 4-hour TTL. |
-| `RedisDetectionSettingsRepository` | Persist per-guild disabled text channels for LoL invite auto-detection. |
+| `RedisDetectionSettingsRepository` | Persist per-guild disabled text channels and per-channel prefix/auto detection modes. |
 | `RedisNotificationSubscriptionRepository` | Persist users who want missing-player notifications per guild. |
 | `LobbyCardRenderer` | Render Discord embeds and buttons from current lobby state. |
 | `AramCleanupJob` | Periodically delete empty voice rooms and remove Redis lobby records. |
@@ -98,7 +98,9 @@ sequenceDiagram
 ## Reliability Notes
 
 - Player count, missing count, and full/open status use the actual voice channel member count as the source of truth.
-- Invite link auto-detection can be disabled per text channel and is persisted in Redis.
+- Invite link detection defaults to prefix mode. Users must post `/al` plus the LoL invite link unless a moderator switches the channel to auto mode.
+- Invite link detection can be disabled per text channel and is persisted in Redis.
+- Detection mode can be switched per text channel and defaults to `PREFIX` when Redis has no value or an invalid value.
 - Vacancy notifications only fire when a lobby transitions to missing 1-2 players, and `lastNotifiedMissingCount` prevents repeating the same missing count.
 - Ready status is only accepted from users currently in the lobby voice channel. Ready users are trimmed when they leave voice.
 - Waitlist users and notification subscribers are removed from the mention target set if they are already in the voice channel.
@@ -112,6 +114,7 @@ sequenceDiagram
 Covered by unit tests:
 
 - Riot invite link detection, including messages without links and trailing punctuation.
+- Prefix-mode and auto-mode message gating before lobby creation.
 - Lobby creation with owner counted as first player.
 - Voice presence drives full/open status and missing-player counts.
 - Ready check requires voice membership and is trimmed on voice leave.
@@ -121,7 +124,7 @@ Covered by unit tests:
 - Close removes lobby from active/open query results.
 - Voice empty timer and cleanup grace-period logic.
 - Redis key namespace and save/find JSON behavior with TTL.
-- Redis detection settings and notification subscription set behavior.
+- Redis detection settings, detection mode, and notification subscription set behavior.
 
 Not covered by automated tests yet:
 

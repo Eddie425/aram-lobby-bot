@@ -46,14 +46,14 @@ ARAM Lobby Bot solves that one problem: **show the current joinable ARAM lobbies
 
 | Area | What it does |
 | --- | --- |
-| Invite detection | Watches Discord messages for `https://gg.riotgames.com/LOL?joinCode=...`. |
+| Invite detection | Defaults to `/al https://gg.riotgames.com/LOL?joinCode=...` to avoid accidental lobby creation. |
 | Voice room automation | Creates a per-lobby voice channel under the configured Discord category. |
 | Lobby card | Posts an embed with owner, status, missing slots, voice count, and join buttons. |
 | Voice-based capacity | Uses actual voice channel members as the source of truth for `0 / 5` through `5 / 5`. |
 | Ready check | Shows Ready/Not Ready controls when the voice room reaches 5 players. |
 | Waitlist | Lets non-voice users queue for a full lobby. |
 | Vacancy notifications | Mentions waitlisted/subscribed users when a lobby drops to missing 1-2 players. |
-| Channel controls | Lets moderators disable or enable auto-detection per text channel. |
+| Channel controls | Lets moderators disable detection or switch between prefix mode and raw-link auto mode per text channel. |
 | Cleanup | Deletes empty voice rooms after the configured grace period and closes the card. |
 
 ## Core Flow
@@ -65,7 +65,7 @@ sequenceDiagram
     participant Bot
     participant Redis
 
-    Player->>Discord: Post LoL invite link
+    Player->>Discord: Post /al + LoL invite link
     Discord->>Bot: MessageReceivedEvent
     Bot->>Discord: Create ARAM voice room
     Bot->>Redis: Save lobby with TTL
@@ -125,6 +125,7 @@ The app requests Message Content, Guild Messages, and Guild Voice States gateway
 | `ARAM_LOBBY_TTL` | `4h` | Redis TTL for lobby records. |
 | `ARAM_CLEANUP_EMPTY_GRACE` | `10s` | How long an empty voice room can remain before deletion. |
 | `ARAM_CLEANUP_FIXED_RATE` | `5s` | Cleanup scheduler interval. |
+| `ARAM_DETECTION_TRIGGER_PREFIX` | `/al` | Message prefix required in prefix mode. |
 
 ## Slash Commands
 
@@ -135,6 +136,8 @@ The app requests Message Content, Guild Messages, and Guild Voice States gateway
 | `/aram status` | Show auto-detection status and lobby counts for the current channel. |
 | `/aram disable` | Disable LoL invite link auto-detection in the current channel. Requires Manage Channels. |
 | `/aram enable` | Enable LoL invite link auto-detection in the current channel. Requires Manage Channels. |
+| `/aram mode-prefix` | Require the configured prefix before a LoL invite link. Requires Manage Channels. |
+| `/aram mode-auto` | Create lobbies from raw LoL invite links without a prefix. Requires Manage Channels. |
 | `/aram notify-on` | Subscribe to vacancy notifications when an ARAM lobby drops to missing 1-2 players. |
 | `/aram notify-off` | Unsubscribe from vacancy notifications. |
 | `/aram notify-status` | Check whether you are subscribed to vacancy notifications. |
@@ -168,15 +171,16 @@ Avoid serverless request/response platforms because JDA maintains a persistent D
 ## Manual Discord Test Checklist
 
 1. Start the bot with Redis and a valid `DISCORD_BOT_TOKEN`.
-2. Post a `https://gg.riotgames.com/LOL?joinCode=...` link in an enabled text channel.
+2. Post `/al https://gg.riotgames.com/LOL?joinCode=...` in an enabled text channel.
 3. Confirm the bot creates a voice room and posts a lobby card with Join LoL and Join Voice buttons.
 4. Join and leave the created voice room; confirm the card updates `戰力槽`, `缺人`, and `語音人數`.
 5. Put 5 users in the voice room; confirm the card becomes FULL and shows Ready/Not Ready/waitlist buttons.
 6. Have a voice user click Ready; confirm Ready Check updates.
 7. Have a non-voice user click `排候補`; then drop the voice room from 5 to 4 users and confirm they are mentioned.
 8. Run `/aram notify-on` as another user; drop a lobby to missing 1-2 and confirm they are mentioned once for that missing count.
-9. Run `/aram disable`, post a LoL link, and confirm no lobby is created; run `/aram enable` and retry.
-10. Leave the voice room empty for `ARAM_CLEANUP_EMPTY_GRACE`; confirm the voice channel is deleted and the card becomes CLOSED.
+9. Run `/aram mode-auto`, post a raw LoL link, and confirm a lobby is created without `/al`.
+10. Run `/aram disable`, post `/al` plus a LoL link, and confirm no lobby is created; run `/aram enable` and retry.
+11. Leave the voice room empty for `ARAM_CLEANUP_EMPTY_GRACE`; confirm the voice channel is deleted and the card becomes CLOSED.
 
 ## Documentation
 

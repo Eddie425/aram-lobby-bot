@@ -6,7 +6,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.eddie.aramlobbybot.config.AramProperties;
 import com.eddie.aramlobbybot.domain.Lobby;
+import com.eddie.aramlobbybot.repository.DetectionMode;
 import com.eddie.aramlobbybot.repository.DetectionSettingsRepository;
 import com.eddie.aramlobbybot.repository.NotificationSubscriptionRepository;
 import com.eddie.aramlobbybot.service.LobbyService;
@@ -39,6 +41,7 @@ public class AramDiscordListener extends ListenerAdapter {
     private final DiscordVoiceRoomFactory voiceRoomFactory;
     private final DetectionSettingsRepository detectionSettingsRepository;
     private final NotificationSubscriptionRepository notificationSubscriptionRepository;
+    private final AramProperties aramProperties;
 
     public AramDiscordListener(
             LolInviteLinkDetector linkDetector,
@@ -47,7 +50,8 @@ public class AramDiscordListener extends ListenerAdapter {
             DiscordLobbyMessageUpdater messageUpdater,
             DiscordVoiceRoomFactory voiceRoomFactory,
             DetectionSettingsRepository detectionSettingsRepository,
-            NotificationSubscriptionRepository notificationSubscriptionRepository
+            NotificationSubscriptionRepository notificationSubscriptionRepository,
+            AramProperties aramProperties
     ) {
         this.linkDetector = linkDetector;
         this.lobbyService = lobbyService;
@@ -56,6 +60,7 @@ public class AramDiscordListener extends ListenerAdapter {
         this.voiceRoomFactory = voiceRoomFactory;
         this.detectionSettingsRepository = detectionSettingsRepository;
         this.notificationSubscriptionRepository = notificationSubscriptionRepository;
+        this.aramProperties = aramProperties;
     }
 
     @Override
@@ -63,7 +68,7 @@ public class AramDiscordListener extends ListenerAdapter {
         if (!event.isFromGuild() || event.getAuthor().isBot()) {
             return;
         }
-        if (!detectionSettingsRepository.isDetectionEnabled(event.getGuild().getId(), event.getChannel().getId())) {
+        if (!shouldDetectInviteLink(event.getGuild().getId(), event.getChannel().getId(), event.getMessage().getContentRaw())) {
             return;
         }
 
@@ -183,6 +188,14 @@ public class AramDiscordListener extends ListenerAdapter {
             enableDetection(event);
             return;
         }
+        if ("mode-prefix".equals(event.getSubcommandName())) {
+            setDetectionMode(event, DetectionMode.PREFIX);
+            return;
+        }
+        if ("mode-auto".equals(event.getSubcommandName())) {
+            setDetectionMode(event, DetectionMode.AUTO);
+            return;
+        }
         if ("status".equals(event.getSubcommandName())) {
             replyStatus(event);
             return;
@@ -277,10 +290,25 @@ public class AramDiscordListener extends ListenerAdapter {
         event.reply("已開啟這個頻道的 LoL invite link 自動偵測。").setEphemeral(true).queue();
     }
 
+    private void setDetectionMode(SlashCommandInteractionEvent event, DetectionMode detectionMode) {
+        if (!hasManageChannels(event)) {
+            event.reply("你需要 Manage Channels 權限才能切換這個頻道的偵測模式。").setEphemeral(true).queue();
+            return;
+        }
+        detectionSettingsRepository.setDetectionMode(event.getGuild().getId(), event.getChannel().getId(), detectionMode);
+        String message = detectionMode == DetectionMode.PREFIX
+                ? "已切換為前綴模式。之後要用 `" + aramProperties.detection().triggerPrefix() + " <LoL invite link>` 才會建立 Lobby。"
+                : "已切換為自動模式。之後只要貼 LoL invite link 就會建立 Lobby。";
+        event.reply(message).setEphemeral(true).queue();
+    }
+
     private void replyStatus(SlashCommandInteractionEvent event) {
         boolean enabled = detectionSettingsRepository.isDetectionEnabled(event.getGuild().getId(), event.getChannel().getId());
+        DetectionMode detectionMode = detectionSettingsRepository.findDetectionMode(event.getGuild().getId(), event.getChannel().getId());
         event.replyEmbeds(lobbyCardRenderer.renderBotStatus(
                         enabled,
+                        detectionMode,
+                        aramProperties.detection().triggerPrefix(),
                         lobbyService.findOpenLobbies(),
                         lobbyService.findActiveLobbies()
                 ))
@@ -291,6 +319,23 @@ public class AramDiscordListener extends ListenerAdapter {
     private boolean hasManageChannels(SlashCommandInteractionEvent event) {
         Member member = event.getMember();
         return member != null && member.hasPermission(Permission.MANAGE_CHANNEL);
+    }
+
+    boolean shouldDetectInviteLink(String guildId, String channelId, String rawContent) {
+        if (!detectionSettingsRepository.isDetectionEnabled(guildId, channelId)) {
+            return false;
+        }
+        DetectionMode detectionMode = detectionSettingsRepository.findDetectionMode(guildId, channelId);
+        return detectionMode == DetectionMode.AUTO || hasTriggerPrefix(rawContent);
+    }
+
+    private boolean hasTriggerPrefix(String rawContent) {
+        String triggerPrefix = aramProperties.detection().triggerPrefix();
+        String content = rawContent == null ? "" : rawContent.stripLeading();
+        return content.equals(triggerPrefix)
+                || content.startsWith(triggerPrefix + " ")
+                || content.startsWith(triggerPrefix + "\n")
+                || content.startsWith(triggerPrefix + "\t");
     }
 
     private void notifyVacancyIfNeeded(GuildVoiceUpdateEvent event, Lobby lobby, int previousMissingCount) {

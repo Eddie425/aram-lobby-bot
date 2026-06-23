@@ -70,6 +70,8 @@ public class DiscordBotManager {
                                 new SubcommandData("help", "Show ARAM bot commands"),
                                 new SubcommandData("disable", "Disable invite link auto-detection in this channel"),
                                 new SubcommandData("enable", "Enable invite link auto-detection in this channel"),
+                                new SubcommandData("mode-prefix", "Require the message trigger prefix before LoL invite links"),
+                                new SubcommandData("mode-auto", "Create lobbies from LoL invite links without a trigger prefix"),
                                 new SubcommandData("notify-on", "Subscribe to ARAM vacancy notifications"),
                                 new SubcommandData("notify-off", "Unsubscribe from ARAM vacancy notifications"),
                                 new SubcommandData("notify-status", "Show your ARAM notification subscription status"),

@@ -17,6 +17,8 @@ aram:
   cleanup:
     empty-grace: ${ARAM_CLEANUP_EMPTY_GRACE:10s}
     fixed-rate: ${ARAM_CLEANUP_FIXED_RATE:5s}
+  detection:
+    trigger-prefix: ${ARAM_DETECTION_TRIGGER_PREFIX:/al}
 
 logging:
   level:

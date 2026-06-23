@@ -7,6 +7,7 @@ import java.util.List;
 
 import com.eddie.aramlobbybot.domain.Lobby;
 import com.eddie.aramlobbybot.domain.LobbyStatus;
+import com.eddie.aramlobbybot.repository.DetectionMode;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.interactions.components.ActionRow;
@@ -77,11 +78,19 @@ public class LobbyCardRenderer {
         return embedBuilder.build();
     }
 
-    public MessageEmbed renderBotStatus(boolean detectionEnabled, List<Lobby> openLobbies, List<Lobby> activeLobbies) {
+    public MessageEmbed renderBotStatus(
+            boolean detectionEnabled,
+            DetectionMode detectionMode,
+            String triggerPrefix,
+            List<Lobby> openLobbies,
+            List<Lobby> activeLobbies
+    ) {
         return new EmbedBuilder()
                 .setTitle("⚙️ ARAM Bot Status")
                 .setColor(detectionEnabled ? new Color(0x27AE60) : new Color(0xD72638))
                 .addField("自動偵測", detectionEnabled ? "🟢 **ON**" : "🔴 **OFF**", true)
+                .addField("觸發模式", detectionMode == DetectionMode.AUTO ? "⚡ **AUTO**" : "🔐 **PREFIX**", true)
+                .addField("前綴", "`" + safe(triggerPrefix) + "`", true)
                 .addField("可加入 Lobby", String.valueOf(openLobbies.size()), true)
                 .addField("Active Lobby", String.valueOf(activeLobbies.size()), true)
                 .build();
@@ -97,6 +106,8 @@ public class LobbyCardRenderer {
                         `/aram status` - 看這個頻道是否有開自動偵測
                         `/aram disable` - 關閉這個頻道的 LoL link 自動偵測
                         `/aram enable` - 開啟這個頻道的 LoL link 自動偵測
+                        `/aram mode-prefix` - 只接受前綴 + LoL link，例如 `/al https://...`
+                        `/aram mode-auto` - 回到原本只貼 LoL link 就觸發
                         `/aram notify-on` - 訂閱缺 1-2 的上車通知
                         `/aram notify-off` - 取消缺人通知
                         `/aram notify-status` - 查看你的通知訂閱狀態
